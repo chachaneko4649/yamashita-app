@@ -1,117 +1,126 @@
 ﻿<!DOCTYPE html>
-<html lang="ja">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KAZUメール</title>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 15px; }
-        .box { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .hidden { display: none; }
-        h1 { color: #007aff; font-size: 1.2rem; text-align: center; }
-        select, input, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .blue { background: #007aff; color: white; }
-        .gray { background: #666; color: white; }
-        .green { background: #34c759; color: white; }
-        .tab-area { display: flex; gap: 5px; }
-        .tab { flex: 1; padding: 8px; background: #ddd; border: none; border-radius: 5px; }
-        .tab.on { background: #007aff; color: white; }
-        #view { background: #eee; padding: 10px; margin-top: 10px; border-radius: 8px; white-space: pre-wrap; font-size: 0.9rem; }
-        .list-item { border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
-        .del-btn { background: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; }
+        body { font-family: sans-serif; background: #eee; padding: 10px; }
+        .box { background: white; padding: 15px; border-radius: 10px; max-width: 400px; margin: auto; }
+        .hidden { display: none !important; }
+        button { width: 100%; padding: 12px; margin: 5px 0; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; }
+        textarea, input, select { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
+        .tab-btn { width: 32%; font-size: 0.8rem; background: #ddd; color: #333; }
+        .active { background: #007aff !important; color: white !important; }
+        .list-item { border-bottom: 1px solid #eee; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+        #preview { background: #f9f9f9; padding: 10px; border: 1px dashed #999; margin: 10px 0; white-space: pre-wrap; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-<div id="p1" class="box">
-    <h1>📧 KAZUメール</h1>
-    挨拶 <select id="s1"></select>
-    本文 <select id="s2"></select>
-    結び <select id="s3"></select>
-    <button class="blue" onclick="make()">文章を作成＆コピー</button>
-    <div id="view">ここに結果が出ます</div>
-    <button class="gray" onclick="go(2)">⚙ 設定（マスター登録）</button>
+<div id="page1" class="box">
+    <h1>📧 山さんのお手紙キット</h1>
+    挨拶: <select id="sel1"></select>
+    本文: <select id="sel2"></select>
+    結び: <select id="sel3"></select>
+    <button style="background:#007aff; color:white;" onclick="doCopy()">文章を作成してコピー</button>
+    <div id="preview">ここに結果が出ます</div>
+    <button style="background:#666; color:white;" onclick="changePage(2)">⚙ マスター登録へ</button>
 </div>
 
-<div id="p2" class="box hidden">
-    <h1>⚙ マスター登録</h1>
-    <div class="tab-area">
-        <button id="b1" class="tab on" onclick="tab('greeting')">挨拶</button>
-        <button id="b2" class="tab" onclick="tab('body')">本文</button>
-        <button id="b3" class="tab" onclick="tab('closing')">結び</button>
+<div id="page2" class="box hidden">
+    <h1>⚙ マスター管理</h1>
+    <div style="display:flex; justify-content: space-between; margin-bottom:10px;">
+        <button id="t1" class="tab-btn active" onclick="setTab('greeting')">挨拶</button>
+        <button id="t2" class="tab-btn" onclick="setTab('body')">本文</button>
+        <button id="t3" class="tab-btn" onclick="setTab('closing')">結び</button>
     </div>
-    <input type="text" id="iL" placeholder="表示名">
-    <textarea id="iV" placeholder="文章内容" rows="3"></textarea>
-    <button class="green" onclick="add()">追加</button>
-    <div id="list"></div>
-    <button class="gray" onclick="go(1)">戻る</button>
+    <input type="text" id="inputL" placeholder="表示名（例：社外用）">
+    <textarea id="inputV" rows="3" placeholder="文章の内容"></textarea>
+    <button style="background:#34c759; color:white;" onclick="doAdd()">この内容を追加</button>
+    <hr>
+    <div id="masterList"></div>
+    <button style="background:#666; color:white;" onclick="changePage(1)">戻る</button>
 </div>
 
 <script>
-    // データの読み込み
-    var db = JSON.parse(localStorage.getItem('kazu_db')) || {
+    // 1. データの管理
+    var kData = JSON.parse(localStorage.getItem('kazu_data_v2')) || {
         greeting: [{l:"通常", v:"〇〇様\nいつもお世話になっております。"}],
         body: [{l:"承知", v:"承知いたしました。"}],
         closing: [{l:"よろしく", v:"よろしくお願いいたします。"}]
     };
-    var now = 'greeting';
+    var currentCat = 'greeting';
 
-    // 画面の更新
-    function draw() {
-        document.getElementById('s1').innerHTML = db.greeting.map(i => `<option value="${i.v}">${i.l}</option>`).join('');
-        document.getElementById('s2').innerHTML = db.body.map(i => `<option value="${i.v}">${i.l}</option>`).join('');
-        document.getElementById('s3').innerHTML = db.closing.map(i => `<option value="${i.v}">${i.l}</option>`).join('');
-        
-        document.getElementById('list').innerHTML = db[now].map((i, idx) => `
+    // 2. 画面を更新する関数
+    function updateUI() {
+        document.getElementById('sel1').innerHTML = kData.greeting.map(i => `<option value="${i.v}">${i.l}</option>`).join('');
+        document.getElementById('sel2').innerHTML = kData.body.map(i => `<option value="${i.v}">${i.l}</option>`).join('');
+        document.getElementById('sel3').innerHTML = kData.closing.map(i => `<option value="${i.v}">${i.l}</option>`).join('');
+
+        var listHtml = kData[currentCat].map((item, idx) => `
             <div class="list-item">
-                <span>${i.l}</span>
-                <button class="del-btn" onclick="del(${idx})">削除</button>
+                <span>${item.l}</span>
+                <button onclick="doDel(${idx})" style="width:auto; background:#ff3b30; color:white; padding:5px 10px; margin:0;">削除</button>
             </div>
         `).join('');
+        document.getElementById('masterList').innerHTML = listHtml;
     }
 
-    // 画面切り替え
-    function go(n) {
-        document.getElementById('p1').classList.toggle('hidden', n==2);
-        document.getElementById('p2').classList.toggle('hidden', n==1);
-        draw();
+    // 3. ページ切り替え
+    function changePage(n) {
+        document.getElementById('page1').className = (n === 1) ? 'box' : 'box hidden';
+        document.getElementById('page2').className = (n === 2) ? 'box' : 'box hidden';
+        updateUI();
     }
 
-    // タブ切り替え
-    function tab(t) {
-        now = t;
-        document.getElementById('b1').className = 'tab ' + (t=='greeting'?'on':'');
-        document.getElementById('b2').className = 'tab ' + (t=='body'?'on':'');
-        document.getElementById('b3').className = 'tab ' + (t=='closing'?'on':'');
-        draw();
+    // 4. タブ切り替え
+    function setTab(cat) {
+        currentCat = cat;
+        document.getElementById('t1').classList.toggle('active', cat === 'greeting');
+        document.getElementById('t2').classList.toggle('active', cat === 'body');
+        document.getElementById('t3').classList.toggle('active', cat === 'closing');
+        updateUI();
     }
 
-    // 追加
-    function add() {
-        var l = document.getElementById('iL').value;
-        var v = document.getElementById('iV').value;
-        if(!l || !v) { alert('入力してね'); return; }
-        db[now].push({l:l, v:v});
-        localStorage.setItem('kazu_db', JSON.stringify(db));
-        document.getElementById('iL').value = '';
-        document.getElementById('iV').value = '';
-        draw();
+    // 5. 追加機能
+    function doAdd() {
+        var l = document.getElementById('inputL').value;
+        var v = document.getElementById('inputV').value;
+        if (!l || !v) return alert('入力してね！');
+        kData[currentCat].push({l: l, v: v});
+        localStorage.setItem('kazu_data_v2', JSON.stringify(kData));
+        document.getElementById('inputL').value = '';
+        document.getElementById('inputV').value = '';
+        updateUI();
+        alert('追加しますた！');
     }
 
-    // 削除
-    function del(idx) {
-        if(confirm('消すばい？')) {
-            db[now].splice(idx, 1);
-            localStorage.setItem('kazu_db', JSON.stringify(db));
-            draw();
+    // 6. 削除機能
+    function doDel(idx) {
+        if (confirm('消していい？')) {
+            kData[currentCat].splice(idx, 1);
+            localStorage.setItem('kazu_data_v2', JSON.stringify(kData));
+            updateUI();
         }
     }
 
-    // コピー
-    function make() {
-        var t = document.getElementById('s1').value + "\n\n" + 
-                document.getElementById('s2').value + "\n\n" + 
-                document.getElementById('s3').value;
-        document.getElementById('view').innerText = t;
-        navigator.clipboard.writeText(t).then(() => alert('コピーしたばい！'));
+    // 7. 作成＆コピー
+    function doCopy() {
+        var res = document.getElementById('sel1').value + "\n\n" +
+                  document.getElementById('sel2').value + "\n\n" +
+                  document.getElementById('sel3').value;
+        document.getElementById('preview').innerText = res;
+        
+        navigator.clipboard.writeText(res).then(function() {
+            alert('コピー完了！');
+        }).catch(function() {
+            alert('コピー失敗。下の枠を長押ししてね');
+        });
+    }
+
+    // 最初に実行
+    updateUI();
+</script>
+</body>
+</html>
