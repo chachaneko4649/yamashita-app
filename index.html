@@ -3,76 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KAZUメール</title>
+    <title>KAZUメール・マスター</title>
     <style>
-        :root { --main-color: #007aff; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1 { font-size: 1.4rem; text-align: center; color: var(--main-color); margin-bottom: 20px; }
-        
-        /* スマホで押しやすいようにパーツを大きく */
-        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.9rem; color: #666; }
-        select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; background-color: #fafafa; appearance: none; -webkit-appearance: none; }
-        
-        button { width: 100%; padding: 15px; background-color: var(--main-color); color: white; border: none; border-radius: 12px; cursor: pointer; margin-top: 25px; font-size: 1.1rem; font-weight: bold; transition: opacity 0.2s; }
-        button:active { opacity: 0.7; }
-        
-        #result { margin-top: 20px; background: #f8f9fa; padding: 15px; white-space: pre-wrap; border: 2px dashed #cbd5e0; border-radius: 10px; font-size: 0.95rem; min-height: 100px; }
-        .copy-hint { text-align: center; font-size: 0.8rem; color: #999; margin-top: 8px; }
+        :root { --main-color: #007aff; --sub-color: #34c759; }
+        body { font-family: -apple-system, sans-serif; padding: 15px; background-color: #f0f2f5; color: #333; margin: 0; }
+        .container { max-width: 500px; margin: 20px auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.4rem; text-align: center; color: var(--main-color); margin-top: 0; }
+        label { display: block; margin-top: 15px; font-weight: bold; font-size: 0.85rem; color: #666; }
+        select, input, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; color: white; border: none; border-radius: 12px; cursor: pointer; margin-top: 15px; font-size: 1rem; font-weight: bold; }
+        .btn-main { background-color: var(--main-color); }
+        .btn-sub { background-color: #666; margin-top: 10px; }
+        .btn-add { background-color: var(--sub-color); margin-bottom: 20px; }
+        .btn-del { background-color: #ff3b30; width: auto; padding: 5px 10px; font-size: 0.8rem; margin-top: 5px; }
+        #result { margin-top: 20px; background: #f8f9fa; padding: 15px; white-space: pre-wrap; border: 2px dashed #cbd5e0; border-radius: 10px; }
+        .hidden { display: none; }
+        .master-item { border-bottom: 1px solid #eee; padding: 10px 0; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div id="mainPage" class="container">
     <h1>📧 KAZU's Mailer</h1>
-    
     <label>① 宛名・挨拶</label>
-    <select id="greeting">
-        <option value="〇〇様&#13;&#10;&#13;&#10;いつも大変お世話になっております。">お世話になっております（通常）</option>
-        <option value="〇〇様&#13;&#10;&#13;&#10;お疲れ様です。">お疲れ様です（社内）</option>
-        <option value="〇〇様&#13;&#10;&#13;&#10;ご連絡ありがとうございます。">ご連絡ありがとうございます（返信）</option>
-    </select>
-
-    <label>② 本文（メイン）</label>
-    <select id="bodyText">
-        <option value="承知いたしました。早速進めさせていただきます。">承知いたしました</option>
-        <option value="資料を送付いたします。ご確認のほどよろしくお願いいたします。">資料送付</option>
-        <option value="あいにくその日は予定がございまして、別日程をご相談させていただけますでしょうか。">日程調整（断り）</option>
-        <option value="先ほどのお電話の件、改めてご連絡いたしました。">電話の件</option>
-    </select>
-
-    <label>③ 結びの言葉</label>
-    <select id="closing">
-        <option value="引き続き、何卒よろしくお願い申し上げます。">引き続きよろしく</option>
-        <option value="取り急ぎ、お返事まで。">取り急ぎお返事</option>
-        <option value="ご不明な点がございましたら、お気軽にお知らせください。">不明点あれば</option>
-    </select>
-
-    <button onclick="generateMail()">文章をコピーする</button>
-
+    <select id="sel-greeting"></select>
+    <label>② 本文</label>
+    <select id="sel-body"></select>
+    <label>③ 結び</label>
+    <select id="sel-closing"></select>
+    <button class="btn-main" onclick="generateMail()">文章をコピーする</button>
     <div id="result">ここに結果が表示されます</div>
-    <p class="copy-hint">ボタンを押すと自動でコピーされます</p>
+    <button class="btn-sub" onclick="togglePage()">🛠 設定（マスター管理）</button>
+</div>
+
+<div id="masterPage" class="container hidden">
+    <h1>🛠 マスター登録</h1>
+    <p style="font-size: 0.8rem; color: #888;">追加したい項目を入力してね</p>
+    <select id="targetCategory">
+        <option value="greeting">① 宛名・挨拶</option>
+        <option value="body">② 本文</option>
+        <option value="closing">③ 結び</option>
+    </select>
+    <input type="text" id="newLabel" placeholder="表示名（例：お疲れ様）">
+    <textarea id="newValue" placeholder="実際の文章" rows="3"></textarea>
+    <button class="btn-add" onclick="addItem()">この内容を追加する</button>
+    
+    <hr>
+    <h3>登録済み一覧</h3>
+    <div id="masterList"></div>
+    <button class="btn-sub" onclick="togglePage()">戻る</button>
 </div>
 
 <script>
-    async function generateMail() {
-        const greeting = document.getElementById('greeting').value;
-        const bodyText = document.getElementById('bodyText').value;
-        const closing = document.getElementById('closing').value;
+    // 初期データ（何も保存されていない時用）
+    const defaultData = {
+        greeting: [{label:"お世話になっております", value:"〇〇様\n\nいつも大変お世話になっております。"}],
+        body: [{label:"承知いたしました", value:"承知いたしました。早速進めさせていただきます。"}],
+        closing: [{label:"引き続きよろしく", value:"引き続き、何卒よろしくお願い申し上げます。"}]
+    };
 
-        const fullMail = `${greeting}\n\n${bodyText}\n\n${closing}`;
-        const resultDiv = document.getElementById('result');
-        resultDiv.innerText = fullMail;
+    let mailData = JSON.parse(localStorage.getItem('kazuMailData')) || defaultData;
 
-        try {
-            // スマホのコピー機能を利用
-            await navigator.clipboard.writeText(fullMail);
-            alert("コピーしたばい！そのまま貼り付けてね。");
-        } catch (err) {
-            alert("コピーに失敗したけん、下の枠を長押ししてコピーしてね。");
+    function save() {
+        localStorage.setItem('kazuMailData', JSON.stringify(mailData));
+        refreshUI();
+    }
+
+    function refreshUI() {
+        // セレクトボックスの更新
+        ['greeting', 'body', 'closing'].forEach(cat => {
+            const sel = document.getElementById(`sel-${cat}`);
+            sel.innerHTML = mailData[cat].map(item => `<option value="${item.value}">${item.label}</option>`).join('');
+        });
+
+        // 管理リストの更新
+        const list = document.getElementById('masterList');
+        list.innerHTML = '';
+        ['greeting', 'body', 'closing'].forEach(cat => {
+            mailData[cat].forEach((item, index) => {
+                list.innerHTML += `<div class="master-item">
+                    <strong>[${cat}] ${item.label}</strong>
+                    <button class="btn-del" onclick="deleteItem('${cat}', ${index})">削除</button>
+                </div>`;
+            });
+        });
+    }
+
+    function addItem() {
+        const cat = document.getElementById('targetCategory').value;
+        const label = document.getElementById('newLabel').value;
+        const value = document.getElementById('newValue').value;
+        if(!label || !value) return alert("全部入力してね！");
+        mailData[cat].push({label, value});
+        document.getElementById('newLabel').value = '';
+        document.getElementById('newValue').value = '';
+        save();
+    }
+
+    function deleteItem(cat, index) {
+        if(confirm('消してもよかと？')) {
+            mailData[cat].splice(index, 1);
+            save();
         }
     }
-</script>
 
+    async function generateMail() {
+        const fullMail = `${document.getElementById('sel-greeting').value}\n\n${document.getElementById('sel-body').value}\n\n${document.getElementById('sel-closing').value}`;
+        document.getElementById('result').innerText = fullMail;
+        await navigator.clipboard.writeText(fullMail);
+        alert("コピーしたばい！");
+    }
+
+    function togglePage() {
+        document.getElementById('mainPage').classList.toggle('hidden');
+        document.getElementById('masterPage').classList.toggle('hidden');
+    }
+
+    refreshUI(); // 起動時に表示を更新
+</script>
 </body>
-</html>
